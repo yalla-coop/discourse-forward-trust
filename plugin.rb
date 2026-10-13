@@ -23,4 +23,6 @@ after_initialize do
   ::DiscourseForwardTrust::FlaggedByUser.apply(self)
   require_relative "lib/discourse_forward_trust/post_previews"
   ::DiscourseForwardTrust::PostPreviews.apply(self)
+  require_relative "lib/discourse_forward_trust/chat_serializers"
+  ::DiscourseForwardTrust::ChatSerializers.apply(self)
 end
