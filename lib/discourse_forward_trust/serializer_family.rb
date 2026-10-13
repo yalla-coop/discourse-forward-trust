@@ -10,7 +10,9 @@ module DiscourseForwardTrust
     def self.add(plugin, base, name, &block)
       ([base] + base.descendants).each do |klass|
         next if klass != base && klass.instance_methods(false).include?(name)
-        plugin.add_to_serializer(klass, name, &block)
+        # add_to_serializer appends "Serializer" to what it is given, so pass
+        # the class name without that suffix.
+        plugin.add_to_serializer(klass.name.delete_suffix("Serializer"), name, &block)
       end
     end
   end

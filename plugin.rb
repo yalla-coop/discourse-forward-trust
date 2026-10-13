@@ -17,4 +17,8 @@ after_initialize do
   # has started. Each feature: require its file, then apply it. Tasks 3-8 add
   # their two lines below, in task order.
   require_relative "lib/discourse_forward_trust/serializer_family"
+  require_relative "lib/discourse_forward_trust/category_group_permissions"
+  ::DiscourseForwardTrust::CategoryGroupPermissions.apply(self)
+  require_relative "lib/discourse_forward_trust/flagged_by_user"
+  ::DiscourseForwardTrust::FlaggedByUser.apply(self)
 end
