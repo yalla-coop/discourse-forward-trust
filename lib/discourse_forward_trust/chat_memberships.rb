@@ -7,8 +7,16 @@
 #   that upstream ignores since October 2024. Prose never writes them, so their
 #   values are the column defaults.
 # - "Messages sent before you joined are not unread": instead of editing five
-#   SQL queries, a new membership starts with earlier messages marked read.
-#   Discourse 2026.x does the same when someone follows a channel.
+#   SQL queries, BEFORE INSERT triggers (migration
+#   20261013120002_forward_trust_chat_last_read_triggers) start a new channel or
+#   thread membership with earlier messages marked read. Triggers, not Rails
+#   callbacks, so bulk inserts (auto-join, add users, direct message channels)
+#   are covered too. Discourse 2026.x does the same when someone follows a channel.
+#
+# Ruling R12 (accepted divergence): production's thread-mention filter from
+# 68b411e9cd is not reproduced. Thread mentions are counted by the thread's own
+# last-read (stock behaviour); production additionally hid thread mentions
+# older than the channel's last-read.
 module DiscourseForwardTrust
   module ChatMemberships
     LEVELS = { never: 0, mention: 1, always: 2 }.freeze
@@ -44,25 +52,6 @@ module DiscourseForwardTrust
       if legacy_levels? && !klass.defined_enums.key?("mobile_notification_level")
         klass.enum :desktop_notification_level, LEVELS, prefix: :desktop_notifications
         klass.enum :mobile_notification_level, LEVELS, prefix: :mobile_notifications
-      end
-
-      klass.after_create do
-        next if last_read_message_id.present?
-        earlier =
-          ::Chat::Message.where(chat_channel_id: chat_channel_id).where(
-            "created_at <= ?",
-            created_at,
-          ).maximum(:id)
-        update_column(:last_read_message_id, earlier) if earlier
-      end
-
-      ::Chat::UserChatThreadMembership.after_create do
-        next if last_read_message_id.present?
-        earlier =
-          ::Chat::Message.where(thread_id: thread_id).where("created_at <= ?", created_at).maximum(
-            :id,
-          )
-        update_column(:last_read_message_id, earlier) if earlier
       end
     end
   end
