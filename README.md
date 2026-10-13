@@ -46,8 +46,9 @@ plugin keeps that. Turn the setting on to start them.
    `forward_trust.thread_membership_last_read()`), because Discourse backups
    contain only the `public` schema: functions there would make every restore
    fail with "already exists". The triggers belong to the tables, so they are
-   in backups, and a backup restores onto a site where this plugin is
-   installed and migrated. The migration's `down` drops the triggers, the
+   in backups, and a backup restores only onto a site where this plugin is
+   installed and migrated. On a site without it (for example the old fork)
+   the restore is refused or rolled back, and that site's data is untouched. The migration's `down` drops the triggers, the
    functions and the schema. Removing the plugin without rolling it back
    leaves them in place.
 
