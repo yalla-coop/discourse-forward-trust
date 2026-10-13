@@ -7,6 +7,9 @@
 # `chat_message` notification row, and :created_chat_notification fires. The
 # Lexicon plugin listens to that event to send the phone push.
 #
+# The job is delayed 5 seconds, as in production, so an active reader's client
+# can advance last_read first (otherwise they'd be pushed what they're reading).
+#
 # Discourse's own Jobs::Chat::NotifyWatching still runs unchanged (desktop
 # alerts, watched threads); this job only adds what the app needs. Members are
 # chosen exactly as production does:
@@ -21,7 +24,8 @@ module DiscourseForwardTrust
 
       def notify_watching_users(except: [])
         super
-        ::Jobs.enqueue(
+        ::Jobs.enqueue_in(
+          5.seconds,
           ::Jobs::DiscourseForwardTrust::ChatMessageNotifications,
           chat_message_id: @chat_message.id,
           mentioned_user_ids: except,
@@ -31,37 +35,6 @@ module DiscourseForwardTrust
 
     def self.apply(plugin)
       plugin.send(:reloadable_patch) { ::Chat::Notifier.prepend(NotifierExtension) }
-    end
-
-    # One-time fix used by the plugin migration: memberships created before the
-    # plugin get their pre-join messages marked read, matching production's
-    # edited unread queries.
-    def self.backfill_last_read!
-      DB.exec(<<~SQL)
-        UPDATE user_chat_channel_memberships m
-        SET last_read_message_id = earlier.max_id
-        FROM (
-          SELECT m2.id, MAX(cm.id) AS max_id
-          FROM user_chat_channel_memberships m2
-          JOIN chat_messages cm
-            ON cm.chat_channel_id = m2.chat_channel_id AND cm.created_at <= m2.created_at
-          GROUP BY m2.id
-        ) earlier
-        WHERE m.id = earlier.id AND COALESCE(m.last_read_message_id, 0) < earlier.max_id
-      SQL
-
-      DB.exec(<<~SQL)
-        UPDATE user_chat_thread_memberships m
-        SET last_read_message_id = earlier.max_id
-        FROM (
-          SELECT m2.id, MAX(cm.id) AS max_id
-          FROM user_chat_thread_memberships m2
-          JOIN chat_messages cm
-            ON cm.thread_id = m2.thread_id AND cm.created_at <= m2.created_at
-          GROUP BY m2.id
-        ) earlier
-        WHERE m.id = earlier.id AND COALESCE(m.last_read_message_id, 0) < earlier.max_id
-      SQL
     end
   end
 end
