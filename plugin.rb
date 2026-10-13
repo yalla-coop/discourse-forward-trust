@@ -21,4 +21,6 @@ after_initialize do
   ::DiscourseForwardTrust::CategoryGroupPermissions.apply(self)
   require_relative "lib/discourse_forward_trust/flagged_by_user"
   ::DiscourseForwardTrust::FlaggedByUser.apply(self)
+  require_relative "lib/discourse_forward_trust/post_previews"
+  ::DiscourseForwardTrust::PostPreviews.apply(self)
 end
