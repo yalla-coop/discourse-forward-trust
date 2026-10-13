@@ -10,20 +10,42 @@
 # The job is delayed 5 seconds, as in production, so an active reader's client
 # can advance last_read first (otherwise they'd be pushed what they're reading).
 #
-# Discourse's own Jobs::Chat::NotifyWatching still runs unchanged (desktop
-# alerts, watched threads); this job only adds what the app needs. Members are
-# chosen exactly as production does:
+# Discourse's own Jobs::Chat::NotifyWatching still runs (desktop alerts,
+# watched threads; R16 below changes who it leaves out); this job only adds
+# what the app needs. Members are chosen exactly as production does:
 # - following, chat enabled, not suspended, level "always" (or watching the thread)
 # - mobile level not "never"
 # - direct messages: everyone the sender may message
 # - channels: mobile "always", or mobile "mention" and mentioned
+#
+# Ruling R16: a NEW message creates no `chat_mention` notification, as in
+# production (its Chat::Notifier#notify_new had no notify_mentioned_users call).
+# Mentioned members get the `chat_message` notification above instead. Editing
+# a message to add a mention still creates one (notify_edit is stock, as in
+# production). Because stock then sends mentioned members no mention alert, they
+# are not left out of Discourse's NotifyWatching web alert either: production's
+# NotifyWatching left out nobody.
 module DiscourseForwardTrust
   module ChatMessageNotifications
     module NotifierExtension
+      def notify_new
+        @forward_trust_new_message = true
+        super
+      ensure
+        @forward_trust_new_message = false
+      end
+
       private
 
-      def notify_watching_users(except: [])
+      def notify_mentioned_users(to_notify, already_notified_user_ids: [])
+        return if @forward_trust_new_message
         super
+      end
+
+      # Stock calls this from notify_new only, with `except` = everyone mentioned
+      # plus the sender.
+      def notify_watching_users(except: [])
+        super(except: @forward_trust_new_message ? [@user.id] : except)
         ::Jobs.enqueue_in(
           5.seconds,
           ::Jobs::DiscourseForwardTrust::ChatMessageNotifications,
