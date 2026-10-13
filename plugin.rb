@@ -14,8 +14,7 @@ end
 after_initialize do
   # Files load here, not at the top of this file, because some of them use
   # Discourse classes (Jobs::Base, chat models) that only exist once Discourse
-  # has started. Each feature: require its file, then apply it. Tasks 3-8 add
-  # their two lines below, in task order.
+  # has started. Each feature: require its file, then apply it.
   require_relative "lib/discourse_forward_trust/serializer_family"
   require_relative "lib/discourse_forward_trust/category_group_permissions"
   ::DiscourseForwardTrust::CategoryGroupPermissions.apply(self)
