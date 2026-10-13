@@ -27,4 +27,6 @@ after_initialize do
   ::DiscourseForwardTrust::ChatSerializers.apply(self)
   require_relative "lib/discourse_forward_trust/group_owner_email"
   ::DiscourseForwardTrust::GroupOwnerEmail.apply(self)
+  require_relative "lib/discourse_forward_trust/chat_memberships"
+  ::DiscourseForwardTrust::ChatMemberships.apply(self)
 end
