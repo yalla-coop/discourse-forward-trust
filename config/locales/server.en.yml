@@ -1,0 +1,3 @@
+en:
+  site_settings:
+    forward_trust_chat_summary_emails: "Send the chat summary email to members who are away. Off by default, because the app never sent these emails."

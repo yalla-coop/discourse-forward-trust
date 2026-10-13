@@ -29,4 +29,8 @@ after_initialize do
   ::DiscourseForwardTrust::GroupOwnerEmail.apply(self)
   require_relative "lib/discourse_forward_trust/chat_memberships"
   ::DiscourseForwardTrust::ChatMemberships.apply(self)
+  require_relative "lib/discourse_forward_trust/chat_message_notifications"
+  ::DiscourseForwardTrust::ChatMessageNotifications.apply(self)
+  require_relative "lib/discourse_forward_trust/chat_summary_emails"
+  ::DiscourseForwardTrust::ChatSummaryEmails.apply(self)
 end

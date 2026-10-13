@@ -1,0 +1,3 @@
+plugins:
+  forward_trust_chat_summary_emails:
+    default: false
