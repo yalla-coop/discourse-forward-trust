@@ -66,14 +66,35 @@ module DiscourseForwardTrust
         ::SearchPostSerializer.prepend(SearchPostSerializerExtension)
         ::SearchTopicListItemSerializer.prepend(SearchTopicListItemSerializerExtension)
 
-        # PostItemExcerpt is a module already included in five serializers, so
-        # its methods are redefined in place rather than prepended.
+        # PostItemExcerpt is a module already included in several serializers,
+        # so its methods are redefined in place rather than prepended.
+        #
+        # From Discourse 2026.x the stock module builds `cooked` from the post
+        # the item points at (excerpt_source_post), uses its translation when
+        # there is one, and hides it from viewers who can't see that post
+        # (can_see_post_item_excerpt?, for example a bookmark of a post that has
+        # since become private). Keep all of that and change only the result:
+        # the full cooked HTML instead of a 300-character excerpt. Older
+        # Discourse has none of these helpers, so each is used only if present.
         ::PostItemExcerpt.module_eval do
           def cooked
-            @cooked ||= object.cooked || object.excerpt || PrettyText.cook(object.raw)
+            @cooked ||=
+              begin
+                source = respond_to?(:excerpt_source_post, true) ? excerpt_source_post : nil
+                translated =
+                  if source && defined?(::ContentLocalization) &&
+                       ::ContentLocalization.respond_to?(:translated_post_cooked)
+                    ::ContentLocalization.translated_post_cooked(source, scope)
+                  end
+                translated || source&.cooked || object.cooked || object.excerpt ||
+                  PrettyText.cook(object.raw)
+              end
           end
 
           def excerpt
+            if respond_to?(:can_see_post_item_excerpt?, true) && !can_see_post_item_excerpt?
+              return nil
+            end
             return nil unless cooked
             @excerpt ||= cooked
           end

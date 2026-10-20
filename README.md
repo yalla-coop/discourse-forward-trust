@@ -92,9 +92,14 @@ Run the safety net (`script/safety-net.sh full`). Re-check these overrides:
 - `post_previews.rb`: the `include_*?` overrides on `SearchPostSerializer`
   (`blurb`, `cooked`) and `SearchTopicListItemSerializer` (`image_url`,
   `thumbnails`).
-- `post_previews.rb` (security): at v2026.9 `PostItemExcerpt` gains
-  `can_see_post_item_excerpt?` and translation sourcing. Redefining `cooked`
-  and `excerpt` bypasses both. Re-check what a viewer may see before that hop.
+- `post_previews.rb` (security): from Discourse 2026.x `PostItemExcerpt`
+  checks `can_see_post_item_excerpt?` and builds `cooked` from
+  `excerpt_source_post` (with `ContentLocalization` translations). The
+  redefinition keeps all three when they exist and only changes the result to
+  the full cooked HTML. Without this, the bookmarks list crashed on 2026.9
+  (`undefined method 'cooked' for Bookmark`). Layer A covers both: a visible
+  bookmark shows full HTML, and a bookmark of a post that became private shows
+  nothing. Re-check these helpers' names at every upgrade.
 - `post_previews.rb`: the `ExcerptParser` patch is dormant in production,
   because the Lexicon plugin's `PrettyText.excerpt` wins under eager loading.
   Re-check the load order at every hop.
